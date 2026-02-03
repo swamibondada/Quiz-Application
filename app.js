@@ -324,62 +324,178 @@ function calculateAndShowResults() {
 function renderResults() {
     const { results } = AppState;
 
+    // Helper to determine status level
+    const getStatusLevel = (score) => {
+        if (score <= 40) return { label: 'Depleted', class: 'depleted' };
+        if (score <= 70) return { label: 'Wobbly', class: 'wobbly' };
+        return { label: 'Flowing', class: 'flowing' };
+    };
+
+    // Find weakest and strongest areas
+    const dimensionScores = [
+        { name: 'Body', key: 'BB', score: results.dimensions.BB },
+        { name: 'Emotions', key: 'EO', score: 100 - results.dimensions.EO },
+        { name: 'Mind', key: 'RO', score: 100 - results.dimensions.RO },
+        { name: 'Spirit', key: 'SP', score: results.dimensions.SP },
+        { name: 'Support', key: 'SS', score: results.dimensions.SS }
+    ];
+
+    const sorted = [...dimensionScores].sort((a, b) => a.score - b.score);
+    const weakest = sorted.slice(0, 2);
+    const strongest = sorted[sorted.length - 1];
+
+    // Calculate ring percentage
+    const ringPercent = results.eas;
+    const ringColor = results.eas <= 40 ? '#e879f9' : results.eas <= 70 ? '#c084fc' : '#22d3ee';
+
+    // Generate 7-day reset based on archetype
+    const resetPlan = generate7DayReset(results.archetype.name);
+
+    // Generate core pattern narrative
+    const corePattern = generateCorePattern(results, weakest, strongest);
+
     const html = `
         <!-- Report Header -->
-        <div class="report-header">
-            <p class="report-greeting">Hi ${results.userName},</p>
-            <h1 class="report-title">Your Energy Alignment Report</h1>
+        <div class="blueprint-header">
+            <div class="blueprint-badge">
+                <span class="badge-dot"></span>
+                PERSONALIZED ENERGY ALIGNMENT BLUEPRINT
+            </div>
+            <h1 class="blueprint-title">Energy Report for ${results.userName}</h1>
+            <p class="blueprint-subtitle">
+                You're not broken or behind. This is a compassionate mirror of where your body, mind, 
+                emotions and spirit have slipped into survival mode — and how to gently move back into creation.
+            </p>
         </div>
         
-        <!-- Score Display -->
-        <div class="score-display">
-            <div class="score-circle" style="border-color: ${results.archetype.color}">
-                <span class="score-value">${results.eas}</span>
-                <span class="score-label">Energy Score</span>
+        <!-- Status Banner -->
+        <div class="status-banner status-${getStatusLevel(results.eas).class}">
+            <span class="status-dot"></span>
+            ${getStatusMessage(results.eas)}
+        </div>
+        
+        <!-- Main Score Section -->
+        <div class="score-section">
+            <div class="score-left">
+                <div class="section-badge">
+                    <span class="badge-dot"></span>
+                    Overall Alignment
+                </div>
+                <h2 class="energy-score-label">ENERGY ALIGNMENT SCORE</h2>
+                <div class="score-number">${results.eas}</div>
+                <div class="score-legend">
+                    <span><strong>0–40:</strong> Depleted</span>
+                    <span><strong>41–70:</strong> Wobbly</span>
+                    <span><strong>71–100:</strong> Flowing</span>
+                </div>
+                <p class="archetype-intro">${results.userName}, you are currently in the</p>
+                <h3 class="archetype-title" style="color: ${ringColor}">${results.archetype.name.toUpperCase()}</h3>
+                <p class="archetype-desc">${results.archetype.description}</p>
+            </div>
+            <div class="score-right">
+                <div class="score-ring" style="--ring-color: ${ringColor}; --ring-percent: ${ringPercent}">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="ring-bg" cx="50" cy="50" r="45"/>
+                        <circle class="ring-fill" cx="50" cy="50" r="45"/>
+                    </svg>
+                </div>
             </div>
         </div>
         
-        <!-- Archetype Card -->
-        <div class="archetype-card" style="border-color: ${results.archetype.color}40">
-            <span class="archetype-icon">${results.archetype.icon}</span>
-            <h2 class="archetype-name" style="color: ${results.archetype.color}">${results.archetype.name}</h2>
-            <p class="archetype-description">${results.archetype.description}</p>
-        </div>
-        
-        <!-- Dimension Scores -->
-        <div class="dimensions-section">
-            <h3 class="dimensions-title">Your Energy Dimensions</h3>
-            <div class="dimension-grid">
-                ${renderDimensionItem('RO', results.dimensions.RO, true)}
-                ${renderDimensionItem('EO', results.dimensions.EO, true)}
-                ${renderDimensionItem('BD', results.dimensions.BD, true)}
-                ${renderDimensionItem('BB', results.dimensions.BB, true)}
-                ${renderDimensionItem('SP', results.dimensions.SP, false)}
-                ${renderDimensionItem('SS', results.dimensions.SS, false)}
+        <!-- Quick Snapshot -->
+        <div class="snapshot-section">
+            <h3 class="snapshot-title">Quick Snapshot</h3>
+            <p class="snapshot-subtitle">Here's how your inner world is functioning behind everything you do.</p>
+            <div class="snapshot-tags">
+                <span class="snapshot-tag tag-${getStatusLevel(results.indices.BMH).class}">
+                    Body–Mind: ${getStatusLevel(results.indices.BMH).label}
+                </span>
+                <span class="snapshot-tag tag-${getStatusLevel(results.indices.RCI).class}">
+                    Receiving: ${getStatusLevel(results.indices.RCI).label}
+                </span>
+                <span class="snapshot-tag tag-${getStatusLevel(100 - results.indices.OGI).class}">
+                    Over-Giving: ${results.indices.OGI > 60 ? 'High' : results.indices.OGI > 30 ? 'Moderate' : 'Low'}
+                </span>
+            </div>
+            <div class="composite-bars">
+                ${renderCompositeBar('Body–Mind Harmony', results.indices.BMH)}
+                ${renderCompositeBar('Receiving Capacity', results.indices.RCI)}
+                ${renderCompositeBar('Over-Giving Index', results.indices.OGI, true)}
             </div>
         </div>
         
-        <!-- Composite Indices -->
-        <div class="dimensions-section">
-            <h3 class="dimensions-title">Composite Insights</h3>
-            <div class="dimension-grid">
-                ${renderDimensionItem('OGI', results.indices.OGI, true)}
-                ${renderDimensionItem('RCI', results.indices.RCI, false)}
-                ${renderDimensionItem('BMH', results.indices.BMH, false)}
+        <!-- Energy Dimensions Grid -->
+        <div class="dimensions-grid-section">
+            <div class="dimension-card">
+                <h3 class="card-title">Your Energy Wheel</h3>
+                <p class="card-subtitle">This radar shows how evenly your energy is distributed across the five core dimensions.</p>
+                <div class="radar-chart">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+            <div class="dimension-card">
+                <h3 class="card-title">Dimension Scores</h3>
+                <p class="card-subtitle">Each bar is a 0–100 score based on your answers. Lower scores are where your system is asking for more repair.</p>
+                <div class="dimension-bars">
+                    ${dimensionScores.map(d => renderDimensionBar(d.name, d.score)).join('')}
+                </div>
+                <p class="strongest-note">
+                    Your strongest area is <strong>${strongest.name}</strong>. Keep feeding this — it's the energy that will help you repair the other dimensions.
+                </p>
             </div>
         </div>
         
-        <!-- Key Insights -->
-        <div class="insights-section">
-            <h3 class="insights-title">Key Insights for You</h3>
-            <ul class="insight-list">
-                ${results.insights.map(insight => `
-                    <li class="insight-item">
-                        <span class="insight-icon">${insight.icon}</span>
-                        <span class="insight-text">${insight.text}</span>
-                    </li>
-                `).join('')}
+        <!-- Leaks Section -->
+        <div class="leaks-section">
+            <p class="leaks-text">
+                Your biggest leaks right now are <strong>${weakest[0].name}</strong> and <strong>${weakest[1].name}</strong>. 
+                These are the areas to give extra love this week.
+            </p>
+        </div>
+        
+        <!-- Core Energy Pattern -->
+        <div class="pattern-section">
+            <div class="section-badge">
+                <span class="badge-dot"></span>
+                WHAT'S REALLY GOING ON
+            </div>
+            <h3 class="pattern-title">Your Core Energy Pattern</h3>
+            <p class="pattern-narrative">${corePattern.narrative}</p>
+            
+            <h4 class="pattern-subtitle">How this shows up in daily life</h4>
+            <ul class="pattern-list">
+                ${corePattern.behaviors.map(b => `<li>${b}</li>`).join('')}
             </ul>
+        </div>
+        
+        <!-- Root Cause -->
+        <div class="root-section">
+            <h4 class="root-title">Root cause in energetic terms</h4>
+            <p class="root-text">${corePattern.rootCause}</p>
+        </div>
+        
+        <!-- 7-Day Reset -->
+        <div class="reset-section">
+            <div class="section-badge">
+                <span class="badge-dot"></span>
+                YOUR NEXT 7 DAYS
+            </div>
+            <h3 class="reset-title">7-Day Nervous System Reset</h3>
+            <p class="reset-subtitle">
+                Your 7-day reset is about turning what you know into what you do consistently. 
+                Small, repeatable practices that your system can rely on, even when life gets messy.
+            </p>
+            <div class="reset-days">
+                ${resetPlan.map((day, i) => `
+                    <div class="reset-day">
+                        <span class="day-dot day-${day.category.toLowerCase()}"></span>
+                        <div class="day-content">
+                            <span class="day-label">DAY ${i + 1}</span>
+                            <p class="day-practice"><strong>${day.category}:</strong> ${day.practice}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
         </div>
         
         <!-- OTO Section -->
@@ -418,20 +534,6 @@ function renderResults() {
                             Monitor your transformation daily
                         </div>
                     </div>
-                    <div class="oto-benefit">
-                        <span class="benefit-icon">🎁</span>
-                        <div class="benefit-text">
-                            <strong>Bonus: Manifestation Toolkit</strong>
-                            Affirmations, visualizations & more
-                        </div>
-                    </div>
-                    <div class="oto-benefit">
-                        <span class="benefit-icon">👑</span>
-                        <div class="benefit-text">
-                            <strong>Live Q&A with Ritu</strong>
-                            Weekly group coaching calls
-                        </div>
-                    </div>
                 </div>
                 
                 <button class="oto-cta" onclick="handleOTOClick()">
@@ -459,35 +561,244 @@ function renderResults() {
 
     DOM.resultsContainer.innerHTML = html;
 
-    // Animate dimension bars after a short delay
+    // Initialize radar chart after DOM is ready
     setTimeout(() => {
-        document.querySelectorAll('.dimension-fill').forEach(fill => {
-            const width = fill.getAttribute('data-width');
-            fill.style.width = width;
-        });
-    }, 300);
+        initRadarChart(dimensionScores);
+        animateBars();
+    }, 100);
 }
 
-function renderDimensionItem(key, value, isInverse) {
-    const info = dimensionInfo[key];
-    const barColor = isInverse
-        ? (value > 60 ? 'var(--error)' : value > 30 ? 'var(--warning)' : 'var(--success)')
-        : (value > 60 ? 'var(--success)' : value > 30 ? 'var(--warning)' : 'var(--error)');
+// Helper functions for report generation
+function getStatusMessage(eas) {
+    if (eas <= 40) {
+        return "YOUR SYSTEM NEEDS DEEP REST. SMALL, GENTLE STEPS ARE YOUR BEST MEDICINE RIGHT NOW.";
+    } else if (eas <= 70) {
+        return "YOUR SYSTEM IS IN TRANSITION. SMALL, CONSISTENT SHIFTS OVER THE NEXT FEW WEEKS WILL CHANGE EVERYTHING.";
+    } else {
+        return "YOUR SYSTEM IS FLOWING. KEEP NURTURING THESE PATTERNS AND WATCH YOUR ENERGY EXPAND.";
+    }
+}
+
+function renderCompositeBar(label, value, isInverse = false) {
+    const displayValue = isInverse ? value : value;
+    const color = isInverse
+        ? (value > 60 ? '#f472b6' : value > 30 ? '#c084fc' : '#22d3ee')
+        : (value > 60 ? '#22d3ee' : value > 30 ? '#c084fc' : '#f472b6');
 
     return `
-        <div class="dimension-item">
-            <div class="dimension-header">
-                <span class="dimension-name">
-                    <span class="dimension-icon">${info.icon}</span>
-                    ${info.name}
-                </span>
-                <span class="dimension-value">${value}%</span>
+        <div class="composite-bar-item">
+            <span class="composite-label">${label}</span>
+            <div class="composite-track">
+                <div class="composite-fill" style="width: ${displayValue}%; background: ${color}"></div>
             </div>
-            <div class="dimension-bar">
-                <div class="dimension-fill" data-width="${value}%" style="width: 0%; background: ${barColor}"></div>
-            </div>
+            <span class="composite-value">${displayValue}</span>
         </div>
     `;
+}
+
+function renderDimensionBar(name, score) {
+    return `
+        <div class="dim-bar-item">
+            <div class="dim-bar-track">
+                <div class="dim-bar-fill" data-width="${score}%"></div>
+            </div>
+            <span class="dim-bar-label">${name}</span>
+        </div>
+    `;
+}
+
+function generateCorePattern(results, weakest, strongest) {
+    const patterns = {
+        'The Resting Phase': {
+            narrative: `You've been the <span class="highlight">strong one for everyone</span> for so long that your own body and emotions are now quietly collapsing behind the scenes.`,
+            behaviors: [
+                'You instinctively say "yes, I\'ll manage" even when your body is screaming for rest.',
+                'Guilt appears quickly when you think of spending time, money or attention on yourself.',
+                'Your sleep, energy levels or health feel unpredictable, which makes it hard to trust your own body.',
+                'You\'re learning to receive with more ease, but when things grow, fear of losing it can switch on.'
+            ],
+            rootCause: `At the root, your system still believes safety comes from controlling everything and everyone. Until this shifts, your energy will keep dropping when life gets intense.`
+        },
+        'The Awakening Phase': {
+            narrative: `You're becoming <span class="highlight">aware of your patterns</span> but the old survival mechanisms still run the show when stress hits.`,
+            behaviors: [
+                'You know what you should do for self-care, but struggle to follow through consistently.',
+                'Moments of clarity alternate with falling back into old habits.',
+                'You catch yourself people-pleasing, then feel frustrated for doing it again.',
+                'Progress feels like two steps forward, one step back — but you\'re still moving.'
+            ],
+            rootCause: `Your nervous system is rewiring, but it needs consistent practice to trust that it's safe to change. The wobbly feeling is actually a sign of growth.`
+        },
+        'The Rising Phase': {
+            narrative: `You've done significant work and your <span class="highlight">energy is building momentum</span>. The foundation is solid — now it's about refinement.`,
+            behaviors: [
+                'You have boundaries, but sometimes struggle to maintain them under pressure.',
+                'Self-care routines exist, but life occasionally derails them.',
+                'You\'re more selective about where you give energy, but guilt still whispers.',
+                'Big manifestations feel possible — you just need to fully trust the process.'
+            ],
+            rootCause: `Your system is learning to hold more light, but old fear patterns occasionally resurface. Keep reinforcing the new neural pathways.`
+        },
+        'The Radiant Phase': {
+            narrative: `You've cultivated <span class="highlight">beautiful alignment</span> and your energy naturally attracts what you desire. Now it's about maintenance and expansion.`,
+            behaviors: [
+                'Self-care is non-negotiable and feels natural, not forced.',
+                'You give from overflow rather than depletion.',
+                'Boundaries are clear and held with ease.',
+                'You\'re ready to help others rise while maintaining your own vibration.'
+            ],
+            rootCause: `Your system has learned to operate from creation rather than survival. Focus on deepening this state and sharing your light.`
+        }
+    };
+
+    return patterns[results.archetype.name] || patterns['The Awakening Phase'];
+}
+
+function generate7DayReset(archetypeName) {
+    const resets = {
+        'The Resting Phase': [
+            { category: 'BODY', practice: 'Do 3 rounds of 4–7–8 breathing before scrolling or checking messages in the morning.' },
+            { category: 'EMOTIONS', practice: 'Choose one moment daily to gently ask: "What emotion am I running from right now?" and breathe with it for 60 seconds.' },
+            { category: 'MIND', practice: 'Each day, rewrite one limiting thought into an empowering one and speak it out loud three times.' },
+            { category: 'SPIRIT', practice: 'Spend 5 minutes in stillness — no guided meditation, just you and silence.' },
+            { category: 'SUPPORT', practice: 'Ask for one small thing from someone today. Practice receiving without explaining yourself.' },
+            { category: 'BODY', practice: 'Gentle stretching for 10 minutes before bed. Let your body release the day.' },
+            { category: 'INTEGRATION', practice: 'Review your week. What felt different? Journal for 10 minutes on your shifts.' }
+        ],
+        'The Awakening Phase': [
+            { category: 'BODY', practice: 'Morning body scan: 5 minutes to check in with each body part without judgment.' },
+            { category: 'EMOTIONS', practice: 'Name three emotions you felt yesterday. Just name them — no story, no fix.' },
+            { category: 'MIND', practice: 'Catch one thought spiral today and consciously redirect it with a power question.' },
+            { category: 'SPIRIT', practice: '10 minutes of conscious breathing. Focus only on the breath entering and leaving.' },
+            { category: 'SUPPORT', practice: 'Share one vulnerable truth with someone you trust. Notice how it feels.' },
+            { category: 'BODY', practice: 'Move for 20 minutes in any way that feels good — walking, dancing, yoga.' },
+            { category: 'INTEGRATION', practice: 'Celebrate three wins from this week, no matter how small.' }
+        ],
+        'The Rising Phase': [
+            { category: 'BODY', practice: 'Wake up 15 minutes earlier for a morning ritual that\'s just for you.' },
+            { category: 'EMOTIONS', practice: 'Practice feeling joy without waiting for a reason. Generate it from within.' },
+            { category: 'MIND', practice: 'Visualize your ideal day in detail before it begins. Feel it as already done.' },
+            { category: 'SPIRIT', practice: 'Create space for inspired action. When guidance comes, take one small step immediately.' },
+            { category: 'SUPPORT', practice: 'Audit your energy exchanges. Are you giving more than receiving anywhere?' },
+            { category: 'BODY', practice: 'Upgrade one health habit. Better water, food, or sleep — choose one.' },
+            { category: 'INTEGRATION', practice: 'Write a letter to your future self. What do you want her to know?' }
+        ],
+        'The Radiant Phase': [
+            { category: 'BODY', practice: 'Honor your body with its preferred form of movement. Let it guide you.' },
+            { category: 'EMOTIONS', practice: 'Practice transmuting any low emotion into creative energy within 5 minutes.' },
+            { category: 'MIND', practice: 'Mentor someone today. Share one insight that shifted everything for you.' },
+            { category: 'SPIRIT', practice: 'Deep meditation: 20 minutes of complete presence and connection.' },
+            { category: 'SUPPORT', practice: 'Create a new supportive ritual with someone you love.' },
+            { category: 'EXPANSION', practice: 'Dream bigger. What would you do if you knew you couldn\'t fail?' },
+            { category: 'INTEGRATION', practice: 'Anchor your new identity. Who are you becoming? Live from that place.' }
+        ]
+    };
+
+    return resets[archetypeName] || resets['The Awakening Phase'];
+}
+
+function initRadarChart(dimensionScores) {
+    const canvas = document.getElementById('radarChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 30;
+    const labels = dimensionScores.map(d => d.name);
+    const values = dimensionScores.map(d => d.score);
+    const numPoints = values.length;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid circles
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 4; i++) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, (radius * i) / 4, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // Draw grid lines
+    for (let i = 0; i < numPoints; i++) {
+        const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(
+            centerX + Math.cos(angle) * radius,
+            centerY + Math.sin(angle) * radius
+        );
+        ctx.stroke();
+    }
+
+    // Draw data polygon
+    ctx.fillStyle = 'rgba(192, 132, 252, 0.3)';
+    ctx.strokeStyle = '#c084fc';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    values.forEach((value, i) => {
+        const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2;
+        const distance = (value / 100) * radius;
+        const x = centerX + Math.cos(angle) * distance;
+        const y = centerY + Math.sin(angle) * distance;
+
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw data points
+    ctx.fillStyle = '#e879f9';
+    values.forEach((value, i) => {
+        const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2;
+        const distance = (value / 100) * radius;
+        const x = centerX + Math.cos(angle) * distance;
+        const y = centerY + Math.sin(angle) * distance;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Draw labels
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+
+    labels.forEach((label, i) => {
+        const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * (radius + 20);
+        const y = centerY + Math.sin(angle) * (radius + 20);
+        ctx.fillText(label, x, y + 4);
+    });
+}
+
+function animateBars() {
+    // Animate dimension bars (vertical - use height)
+    document.querySelectorAll('.dim-bar-fill').forEach(fill => {
+        const height = fill.getAttribute('data-width'); // data-width contains the percentage
+        setTimeout(() => {
+            fill.style.height = height;
+        }, 100);
+    });
+
+    // Animate composite bars
+    document.querySelectorAll('.composite-fill').forEach(fill => {
+        const currentWidth = fill.style.width;
+        fill.style.width = '0%';
+        setTimeout(() => {
+            fill.style.width = currentWidth;
+        }, 100);
+    });
 }
 
 // Action Handlers
