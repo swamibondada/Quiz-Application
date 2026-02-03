@@ -145,13 +145,13 @@ const ScoringEngine = {
     // Determine Archetype based on EAS
     determineArchetype(eas) {
         if (eas <= 40) {
-            return archetypes.depletedCamel;
+            return archetypes.restingPhase;
         } else if (eas <= 60) {
-            return archetypes.wobblyAligner;
+            return archetypes.awakeningPhase;
         } else if (eas <= 80) {
-            return archetypes.emergingQueen;
+            return archetypes.risingPhase;
         } else {
-            return archetypes.magneticQueen;
+            return archetypes.radiantPhase;
         }
     },
 
@@ -162,7 +162,7 @@ const ScoringEngine = {
         // Insight 1: Based on archetype
         insights.push({
             icon: archetype.icon,
-            text: `As a <strong>${archetype.name}</strong>, ${this.getArchetypeInsight(archetype)}`
+            text: `As someone in <strong>${archetype.name}</strong>, ${this.getArchetypeInsight(archetype)}`
         });
 
         // Insight 2: Highest burden area
@@ -221,14 +221,14 @@ const ScoringEngine = {
 
     getArchetypeInsight(archetype) {
         switch (archetype.name) {
-            case 'Depleted Camel':
-                return 'your energy reserves are critically low. Your journey needs to start with deep rest and radical self-compassion.';
-            case 'Wobbly Aligner':
-                return 'you\'re walking the line between depletion and alignment. With the right support, you can tip the scales toward vibrant energy.';
-            case 'Emerging Energy Queen':
-                return 'you\'re awakening to your power. A few targeted shifts can unlock your full magnetic potential.';
-            case 'Magnetic Energy Queen':
-                return 'you\'ve done remarkable inner work. Your focus now is on maintaining this high vibration and sharing your light.';
+            case 'The Resting Phase':
+                return 'your energy is calling for deep restoration. Your journey begins with gentle self-compassion and honoring your need to pause.';
+            case 'The Awakening Phase':
+                return 'you\'re in a beautiful state of emerging awareness. With the right support, you can move steadily toward consistent alignment.';
+            case 'The Rising Phase':
+                return 'your energy is building momentum. A few targeted practices can help you fully step into your radiant potential.';
+            case 'The Radiant Phase':
+                return 'you\'ve cultivated beautiful alignment. Your focus now is on maintaining this vibration and sharing your authentic light.';
             default:
                 return 'your energy profile is unique and full of potential for growth.';
         }

@@ -1,9 +1,11 @@
 // Energy Alignment Quiz - Main Application Logic
+// Redesigned for one-question-at-a-time premium experience
 
 // App State
 const AppState = {
     currentScreen: 'welcome',
-    currentSection: 0,
+    currentQuestionIndex: 0,
+    allQuestions: [],
     answers: {},
     results: null
 };
@@ -26,9 +28,30 @@ const DOM = {
 
 // Initialize App
 function init() {
+    // Build flat question array
+    AppState.allQuestions = getAllQuestions();
+
     DOM.startBtn.addEventListener('click', startQuiz);
-    DOM.prevBtn.addEventListener('click', prevSection);
-    DOM.nextBtn.addEventListener('click', nextSection);
+    DOM.prevBtn.addEventListener('click', prevQuestion);
+    DOM.nextBtn.addEventListener('click', nextQuestion);
+}
+
+// Flatten all questions from sections into single array
+function getAllQuestions() {
+    const questions = [];
+    sectionOrder.forEach(sectionKey => {
+        const section = quizData[sectionKey];
+        section.questions.forEach(question => {
+            questions.push({
+                ...question,
+                sectionKey: sectionKey,
+                sectionTitle: section.title,
+                sectionIcon: section.icon,
+                sectionSubtitle: section.subtitle
+            });
+        });
+    });
+    return questions;
 }
 
 // Navigation Functions
@@ -42,28 +65,28 @@ function showScreen(screenName) {
 }
 
 function startQuiz() {
-    AppState.currentSection = 0;
+    AppState.currentQuestionIndex = 0;
     AppState.answers = {};
     showScreen('quiz');
-    renderSection();
+    renderQuestion();
 }
 
-function prevSection() {
-    if (AppState.currentSection > 0) {
-        AppState.currentSection--;
-        renderSection();
+function prevQuestion() {
+    if (AppState.currentQuestionIndex > 0) {
+        AppState.currentQuestionIndex--;
+        renderQuestion('prev');
     }
 }
 
-function nextSection() {
-    // Validate current section
-    if (!validateSection()) {
+function nextQuestion() {
+    // Validate current question
+    if (!validateCurrentQuestion()) {
         return;
     }
 
-    if (AppState.currentSection < sectionOrder.length - 1) {
-        AppState.currentSection++;
-        renderSection();
+    if (AppState.currentQuestionIndex < AppState.allQuestions.length - 1) {
+        AppState.currentQuestionIndex++;
+        renderQuestion('next');
     } else {
         // Calculate results and show
         calculateAndShowResults();
@@ -71,37 +94,23 @@ function nextSection() {
 }
 
 // Validation
-function validateSection() {
-    const sectionKey = sectionOrder[AppState.currentSection];
-    const section = quizData[sectionKey];
-    let isValid = true;
-    let firstInvalid = null;
+function validateCurrentQuestion() {
+    const question = AppState.allQuestions[AppState.currentQuestionIndex];
+    const answer = AppState.answers[question.id];
+    const questionCard = document.querySelector('.question-card');
 
-    section.questions.forEach(question => {
-        const answer = AppState.answers[question.id];
-        const questionCard = document.querySelector(`[data-question-id="${question.id}"]`);
-
-        if (!answer || (typeof answer === 'string' && answer.trim() === '')) {
-            isValid = false;
-            if (questionCard) {
-                questionCard.classList.add('invalid');
-                if (!firstInvalid) {
-                    firstInvalid = questionCard;
-                }
-            }
-        } else {
-            if (questionCard) {
-                questionCard.classList.remove('invalid');
-            }
+    if (!answer || (typeof answer === 'string' && answer.trim() === '')) {
+        if (questionCard) {
+            questionCard.classList.add('invalid');
+            shakeElement(questionCard);
         }
-    });
-
-    if (!isValid && firstInvalid) {
-        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        shakeElement(firstInvalid);
+        return false;
     }
 
-    return isValid;
+    if (questionCard) {
+        questionCard.classList.remove('invalid');
+    }
+    return true;
 }
 
 function shakeElement(element) {
@@ -126,48 +135,56 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Render Functions
-function renderSection() {
-    const sectionKey = sectionOrder[AppState.currentSection];
-    const section = quizData[sectionKey];
+function renderQuestion(direction = 'none') {
+    const question = AppState.allQuestions[AppState.currentQuestionIndex];
+    const questionNumber = AppState.currentQuestionIndex + 1;
+    const totalQuestions = AppState.allQuestions.length;
 
     updateProgress();
     updateNavigation();
 
+    // Determine animation class
+    let animationClass = 'fade-in';
+    if (direction === 'next') animationClass = 'slide-in-right';
+    if (direction === 'prev') animationClass = 'slide-in-left';
+
     const html = `
-        <div class="section-header">
-            <span class="section-icon">${section.icon}</span>
-            <h2 class="section-title">${section.title}</h2>
-            <p class="section-subtitle">${section.subtitle}</p>
-        </div>
-        <div class="questions-container">
-            ${section.questions.map((q, idx) => renderQuestion(q, idx + 1)).join('')}
+        <div class="question-wrapper ${animationClass}">
+            <div class="section-indicator">
+                <span class="section-icon">${question.sectionIcon}</span>
+                <span class="section-name">${question.sectionTitle}</span>
+            </div>
+            <div class="question-card" data-question-id="${question.id}">
+                <p class="question-text">
+                    <span class="question-number">${questionNumber}.</span>
+                    ${question.text}
+                </p>
+                ${renderQuestionInput(question)}
+            </div>
         </div>
     `;
 
     DOM.quizContent.innerHTML = html;
-    attachQuestionListeners();
+    attachQuestionListeners(question);
     window.scrollTo(0, 0);
 }
 
-function renderQuestion(question, number) {
-    const currentAnswer = AppState.answers[question.id] || '';
-
-    let inputHtml = '';
+function renderQuestionInput(question) {
+    const currentAnswer = AppState.answers[question.id];
 
     switch (question.type) {
         case 'text':
-            inputHtml = `
+            return `
                 <input type="text" 
                     class="text-input" 
                     id="${question.id}"
                     placeholder="${question.placeholder || ''}"
-                    value="${currentAnswer}">
+                    value="${currentAnswer || ''}">
             `;
-            break;
 
         case 'single':
         case 'categorical':
-            inputHtml = `
+            return `
                 <div class="options-grid">
                     ${question.options.map(opt => `
                         <label class="option-label ${currentAnswer === opt.value ? 'selected' : ''}" data-value="${opt.value}">
@@ -178,58 +195,60 @@ function renderQuestion(question, number) {
                     `).join('')}
                 </div>
             `;
-            break;
 
         case 'likert':
-            inputHtml = `
-                <div class="likert-scale">
-                    ${[1, 2, 3, 4, 5].map(val => `
-                        <label class="likert-option ${currentAnswer === String(val) ? 'selected' : ''}" data-value="${val}">
-                            <input type="radio" class="option-radio" name="${question.id}" value="${val}" ${currentAnswer === String(val) ? 'checked' : ''}>
-                            <span class="likert-number">${val}</span>
-                            <span class="likert-label">${getLikertShortLabel(val)}</span>
-                        </label>
-                    `).join('')}
-                </div>
-                <div class="scale-labels">
-                    <span>Strongly Disagree</span>
-                    <span>Strongly Agree</span>
+            // Personality test style circles (no slider, varying sizes)
+            const selectedValue = parseInt(currentAnswer) || 0;
+            return `
+                <div class="personality-scale">
+                    <span class="scale-label scale-label-left">Disagree</span>
+                    <div class="scale-circles">
+                        ${[1, 2, 3, 4, 5].map(val => {
+                // Size classes: ends are larger, middle is smaller
+                const sizeClass = val === 1 || val === 5 ? 'size-lg' :
+                    val === 2 || val === 4 ? 'size-md' : 'size-sm';
+                // Color classes: left side teal, right side green, middle neutral
+                const colorClass = val <= 2 ? 'color-disagree' :
+                    val >= 4 ? 'color-agree' : 'color-neutral';
+                return `
+                                <div class="scale-circle ${sizeClass} ${colorClass} ${selectedValue === val ? 'selected' : ''}" 
+                                     data-value="${val}">
+                                </div>
+                            `;
+            }).join('')}
+                    </div>
+                    <span class="scale-label scale-label-right">Agree</span>
                 </div>
             `;
-            break;
+
+        default:
+            return '';
+    }
+}
+
+function getLikertLabel(value) {
+    const labels = {
+        1: 'Strongly Disagree',
+        2: 'Disagree',
+        3: 'Neutral',
+        4: 'Agree',
+        5: 'Strongly Agree'
+    };
+    return labels[value] || '';
+}
+
+function attachQuestionListeners(question) {
+    // Text inputs
+    const textInput = document.querySelector('.text-input');
+    if (textInput) {
+        textInput.addEventListener('input', (e) => {
+            AppState.answers[e.target.id] = e.target.value;
+            removeInvalidState();
+        });
+        textInput.focus();
     }
 
-    return `
-        <div class="question-card" data-question-id="${question.id}">
-            <p class="question-text">
-                <span class="question-number">${number}.</span>
-                ${question.text}
-            </p>
-            ${inputHtml}
-        </div>
-    `;
-}
-
-function getLikertShortLabel(value) {
-    const labels = {
-        1: 'SD',
-        2: 'D',
-        3: 'N',
-        4: 'A',
-        5: 'SA'
-    };
-    return labels[value];
-}
-
-function attachQuestionListeners() {
-    // Text inputs
-    document.querySelectorAll('.text-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-            AppState.answers[e.target.id] = e.target.value;
-        });
-    });
-
-    // Radio options (single, categorical, likert)
+    // Radio options (single, categorical)
     document.querySelectorAll('.option-label').forEach(label => {
         label.addEventListener('click', (e) => {
             const radio = label.querySelector('.option-radio');
@@ -244,47 +263,48 @@ function attachQuestionListeners() {
             siblings.forEach(sib => sib.classList.remove('selected'));
             label.classList.add('selected');
 
-            // Remove invalid state
-            const card = label.closest('.question-card');
-            if (card) card.classList.remove('invalid');
+            removeInvalidState();
         });
     });
 
-    // Likert options
-    document.querySelectorAll('.likert-option').forEach(option => {
-        option.addEventListener('click', (e) => {
-            const radio = option.querySelector('.option-radio');
-            const questionId = radio.name;
-            const value = radio.value;
+    // Personality scale circles (likert)
+    const scaleCircles = document.querySelectorAll('.scale-circle');
+    if (scaleCircles.length > 0) {
+        scaleCircles.forEach(circle => {
+            circle.addEventListener('click', () => {
+                const value = circle.dataset.value;
 
-            // Update state
-            AppState.answers[questionId] = value;
+                // Update state
+                AppState.answers[question.id] = value;
 
-            // Update UI
-            const siblings = option.parentElement.querySelectorAll('.likert-option');
-            siblings.forEach(sib => sib.classList.remove('selected'));
-            option.classList.add('selected');
+                // Update UI - remove selected from all, add to clicked
+                scaleCircles.forEach(c => c.classList.remove('selected'));
+                circle.classList.add('selected');
 
-            // Remove invalid state
-            const card = option.closest('.question-card');
-            if (card) card.classList.remove('invalid');
+                removeInvalidState();
+            });
         });
-    });
+    }
+}
+
+function removeInvalidState() {
+    const card = document.querySelector('.question-card');
+    if (card) card.classList.remove('invalid');
 }
 
 function updateProgress() {
-    const totalSections = sectionOrder.length;
-    const progress = ((AppState.currentSection + 1) / totalSections) * 100;
+    const totalQuestions = AppState.allQuestions.length;
+    const progress = ((AppState.currentQuestionIndex + 1) / totalQuestions) * 100;
     DOM.progressFill.style.width = `${progress}%`;
-    DOM.progressText.textContent = `Section ${AppState.currentSection + 1} of ${totalSections}`;
+    DOM.progressText.textContent = `Question ${AppState.currentQuestionIndex + 1} of ${totalQuestions}`;
 }
 
 function updateNavigation() {
-    DOM.prevBtn.disabled = AppState.currentSection === 0;
+    DOM.prevBtn.disabled = AppState.currentQuestionIndex === 0;
 
-    const isLastSection = AppState.currentSection === sectionOrder.length - 1;
-    DOM.nextBtn.innerHTML = isLastSection
-        ? `<span>See Results</span>
+    const isLastQuestion = AppState.currentQuestionIndex === AppState.allQuestions.length - 1;
+    DOM.nextBtn.innerHTML = isLastQuestion
+        ? `<span>See My Results</span>
            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                <path d="M5 12h14M12 5l7 7-7 7"/>
            </svg>`
@@ -307,7 +327,7 @@ function renderResults() {
     const html = `
         <!-- Report Header -->
         <div class="report-header">
-            <p class="report-greeting">✨ Hi ${results.userName}!</p>
+            <p class="report-greeting">Hi ${results.userName},</p>
             <h1 class="report-title">Your Energy Alignment Report</h1>
         </div>
         
@@ -328,7 +348,7 @@ function renderResults() {
         
         <!-- Dimension Scores -->
         <div class="dimensions-section">
-            <h3 class="dimensions-title">📊 Your Energy Dimensions</h3>
+            <h3 class="dimensions-title">Your Energy Dimensions</h3>
             <div class="dimension-grid">
                 ${renderDimensionItem('RO', results.dimensions.RO, true)}
                 ${renderDimensionItem('EO', results.dimensions.EO, true)}
@@ -341,7 +361,7 @@ function renderResults() {
         
         <!-- Composite Indices -->
         <div class="dimensions-section">
-            <h3 class="dimensions-title">🎯 Composite Insights</h3>
+            <h3 class="dimensions-title">Composite Insights</h3>
             <div class="dimension-grid">
                 ${renderDimensionItem('OGI', results.indices.OGI, true)}
                 ${renderDimensionItem('RCI', results.indices.RCI, false)}
@@ -351,7 +371,7 @@ function renderResults() {
         
         <!-- Key Insights -->
         <div class="insights-section">
-            <h3 class="insights-title">💡 Key Insights for You</h3>
+            <h3 class="insights-title">Key Insights for You</h3>
             <ul class="insight-list">
                 ${results.insights.map(insight => `
                     <li class="insight-item">
@@ -366,7 +386,7 @@ function renderResults() {
         <div class="oto-section">
             <div class="oto-content">
                 <span class="oto-badge">Special Offer for You</span>
-                <h2 class="oto-title">🌟 21-Day Energy Reset Program</h2>
+                <h2 class="oto-title">21-Day Energy Reset Program</h2>
                 <p class="oto-subtitle">${results.archetype.otoMessage}</p>
                 
                 <div class="oto-benefits">
@@ -381,7 +401,7 @@ function renderResults() {
                         <span class="benefit-icon">🧘</span>
                         <div class="benefit-text">
                             <strong>Guided Meditations</strong>
-                            Customized for your archetype's needs
+                            Customized for your energy phase
                         </div>
                     </div>
                     <div class="oto-benefit">
@@ -421,7 +441,7 @@ function renderResults() {
                     </svg>
                 </button>
                 
-                <p class="oto-guarantee">🛡️ 100% Satisfaction Guarantee | Start transforming today</p>
+                <p class="oto-guarantee">100% Satisfaction Guarantee | Start transforming today</p>
             </div>
         </div>
         
@@ -450,8 +470,6 @@ function renderResults() {
 
 function renderDimensionItem(key, value, isInverse) {
     const info = dimensionInfo[key];
-    // For inverse dimensions (where lower is better), show inverted bar for visual clarity
-    const displayValue = isInverse ? 100 - value : value;
     const barColor = isInverse
         ? (value > 60 ? 'var(--error)' : value > 30 ? 'var(--warning)' : 'var(--success)')
         : (value > 60 ? 'var(--success)' : value > 30 ? 'var(--warning)' : 'var(--error)');
@@ -479,7 +497,7 @@ function handleOTOClick() {
 }
 
 function retakeQuiz() {
-    AppState.currentSection = 0;
+    AppState.currentQuestionIndex = 0;
     AppState.answers = {};
     AppState.results = null;
     showScreen('welcome');

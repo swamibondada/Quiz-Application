@@ -440,39 +440,39 @@ const sectionOrder = [
     'section7'
 ];
 
-// Archetype definitions
+// Updated Archetype definitions with mature, professional names
 const archetypes = {
-    depletedCamel: {
-        name: 'Depleted Camel',
-        icon: '🐪',
+    restingPhase: {
+        name: 'The Resting Phase',
+        icon: '🌙',
         range: [0, 40],
-        description: 'You\'ve been carrying the weight of the world on your shoulders for too long. Like a camel crossing an endless desert, you\'ve learned to survive on minimal nourishment – but your reserves are running dangerously low. Your energy is depleted, and your spirit is yearning for rest and renewal. The good news? Recognizing this is the first step to transformation.',
-        color: '#e74c3c',
-        otoMessage: 'It\'s time to refill your well. The 21-Day Energy Reset is designed specifically for women like you who have given too much and forgotten to receive.'
+        description: 'Your energy is calling for deep restoration and gentle nurturing. Like the quiet before dawn, this phase is not a weakness—it\'s an invitation to pause, reflect, and rebuild your foundation. Your soul is asking for permission to rest, and honoring this need is the first step toward transformation. You\'ve been giving so much; now it\'s time to receive.',
+        color: '#6B7280',
+        otoMessage: 'It\'s time to honor your need for restoration. The 21-Day Energy Reset is designed specifically for women like you who have given so much and are ready to refill their well with compassion and care.'
     },
-    wobblyAligner: {
-        name: 'Wobbly Aligner',
-        icon: '⚖️',
+    awakeningPhase: {
+        name: 'The Awakening Phase',
+        icon: '🌅',
         range: [41, 60],
-        description: 'You\'re on the path to alignment, but it feels like walking a tightrope. Some days you feel connected and powerful, other days you wobble and lose your balance. You have moments of clarity mixed with confusion, bursts of energy followed by crashes. You\'re not lost – you just need the right support to find your steady center.',
-        color: '#f39c12',
-        otoMessage: 'You\'re so close to finding your balance. The 21-Day Energy Reset will give you the daily structure and tools you need to stabilize your energy and step into consistent alignment.'
+        description: 'You are in a beautiful state of emerging awareness. Like the first light of sunrise, you\'re beginning to see new possibilities and reconnect with your inner power. Some days feel aligned, others feel uncertain—this is natural. You\'re not lost; you\'re awakening. With the right support, you can move steadily toward consistent alignment and inner peace.',
+        color: '#F59E0B',
+        otoMessage: 'You\'re at a pivotal moment in your journey. The 21-Day Energy Reset will provide the daily structure and gentle guidance you need to stabilize your energy and step into consistent alignment.'
     },
-    emergingQueen: {
-        name: 'Emerging Energy Queen',
-        icon: '👑',
+    risingPhase: {
+        name: 'The Rising Phase',
+        icon: '🌸',
         range: [61, 80],
-        description: 'Your crown is appearing! You\'ve done significant inner work and it\'s showing. You understand the importance of energy management and you\'re actively working on raising your vibration. There\'s still room to grow, but you\'re well on your way to magnetic manifestation. Your potential is enormous.',
-        color: '#9b59b6',
-        otoMessage: 'You\'re ready to step fully into your power. The 21-Day Energy Reset will help you unlock the remaining blocks and accelerate your journey to becoming a Magnetic Energy Queen.'
+        description: 'Your energy is building beautiful momentum. You\'ve done meaningful inner work, and it shows in how you carry yourself. You understand the importance of nurturing your energy and you\'re actively cultivating it. There\'s still room to expand, but you\'re well on your way to full alignment. Your potential is blossoming.',
+        color: '#8B5CF6',
+        otoMessage: 'You\'re ready to fully bloom. The 21-Day Energy Reset will help you release any remaining blocks and accelerate your journey into radiant alignment.'
     },
-    magneticQueen: {
-        name: 'Magnetic Energy Queen',
+    radiantPhase: {
+        name: 'The Radiant Phase',
         icon: '✨',
         range: [81, 100],
-        description: 'You radiate! Your energy is aligned, your spirit is nourished, and you possess the magnetic presence that naturally attracts abundance. You\'ve mastered the art of self-care without guilt and you understand that protecting your energy is the foundation of manifestation. People are drawn to your light.',
-        color: '#27ae60',
-        otoMessage: 'Congratulations, Queen! The 21-Day Energy Reset will help you maintain and elevate your already high vibration. Learn advanced techniques to share your magnetic energy with others while keeping your own cup overflowing.'
+        description: 'You are in beautiful alignment with your highest self. Your energy flows freely, your spirit is nourished, and you naturally attract abundance and opportunity. You\'ve mastered the art of self-care without guilt and understand that protecting your energy creates space for magic. People are drawn to your authentic light and presence.',
+        color: '#10B981',
+        otoMessage: 'Congratulations on your radiant alignment. The 21-Day Energy Reset will help you maintain and elevate your vibration even further, while learning advanced techniques to share your light with others.'
     }
 };
 
